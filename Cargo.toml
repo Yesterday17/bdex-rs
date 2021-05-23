@@ -1,0 +1,19 @@
+[package]
+name = "bdex-rs"
+version = "0.1.0"
+authors = ["Yesterday17 <mmf@mmf.moe>"]
+edition = "2018"
+
+[dependencies]
+png = "0.16.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+threadpool = "1.0"
+anyhow = "1.0"
+sha-1 = "0.9.6"
+clap = "3.0.0-beta.2"
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["json", "rustls-tls", "blocking"]
