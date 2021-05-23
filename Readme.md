@@ -26,3 +26,10 @@ OPTIONS:
 1. Download blocks to `./{hash}/`
 2. Merge blocks into `{filename}`
 3. **[NOT IMPLEMENTED]** Remove `./{hash}/` directory
+
+## Cross compile for macOS
+
+```bash
+./scripts/macos_prepare.sh
+./scripts/macos_build.sh
+```
