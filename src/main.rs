@@ -105,6 +105,13 @@ fn main() -> anyhow::Result<()> {
             .long("skip-hash")
             .short('S')
         )
+        .arg(Arg::new("threads")
+            .long("threads")
+            .short('t')
+            .takes_value(true)
+            .required(true)
+            .default_value("8")
+        )
         .arg(Arg::new("retry-times")
             .long("retry-times")
             .short('R')
@@ -126,7 +133,8 @@ fn main() -> anyhow::Result<()> {
         .get_matches();
 
     let client = Arc::new(reqwest::blocking::Client::new());
-    let pool = ThreadPool::new(8);
+    let threads = usize::from_str(matches.value_of("threads").unwrap()).expect("invalid threads argument");
+    let pool = ThreadPool::new(threads);
 
     let hash = matches.value_of("hash").unwrap();
     let meta = Metadata::download(hash, client.clone())?;
