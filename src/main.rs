@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{Write, Read, Cursor};
 use std::convert::TryInto;
 use serde::Deserialize;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use threadpool::ThreadPool;
 use std::path::{PathBuf, Path};
 use png::DecodingError;
@@ -62,9 +62,9 @@ impl MetadataBlock {
         }
         let mut file = File::create(file)?;
 
-        println!("[{}/{}] Downloading {}...", index, total, self.sha1);
         let resp = client.get(&self.url).send()?;
         decode_png(resp, &mut file)?;
+        println!("[{}/{}] Downloaded {}", index, total, self.sha1);
         Ok(())
     }
 }
@@ -154,9 +154,11 @@ fn main() -> anyhow::Result<()> {
 
     let blocks = meta.block.clone();
     let total = blocks.len();
+    let any_block_failed = Arc::new(Mutex::new(false));
     for (i, block) in blocks.into_iter().enumerate() {
         let client = client.clone();
         let path = path.join(&block.sha1);
+        let any_block_failed = any_block_failed.clone();
         pool.execute(move || {
             let mut retry = retry_times;
             loop {
@@ -165,9 +167,14 @@ fn main() -> anyhow::Result<()> {
                 }
                 match block.download(&path, client.clone(), i + 1, total, skip_hash) {
                     Err(e) => {
-                        println!("[{}/{}] {:?}", i + 1, total, e);
                         std::fs::remove_file(&path).unwrap();
                         retry -= 1;
+                        if retry != 0 {
+                            println!("[{}/{}] Download error: {:?}. Retrying...", i + 1, total, e);
+                        } else {
+                            *any_block_failed.lock().unwrap() = true;
+                            println!("[{}/{}] Failed to download block {}: {:?}.", i + 1, total, block.sha1, e);
+                        }
                     }
                     Ok(_) => break,
                 }
@@ -175,6 +182,10 @@ fn main() -> anyhow::Result<()> {
         });
     }
     pool.join();
+
+    if *any_block_failed.lock().unwrap() {
+        anyhow::bail!("Failed to download some blocks. Please run bdex again to redownload those blocks.");
+    }
 
     let result = path.with_file_name(&meta.filename);
     let mut result = File::create(result)?;
