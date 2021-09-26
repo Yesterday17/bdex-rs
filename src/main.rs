@@ -119,6 +119,10 @@ fn main() -> anyhow::Result<()> {
             .required(true)
             .default_value("10")
         )
+        .arg(Arg::new("keep-files")
+            .long("keep-files")
+            .short('k')
+        )
         .arg(Arg::new("hash")
             .takes_value(true)
             .required(true)
@@ -196,5 +200,12 @@ fn main() -> anyhow::Result<()> {
         let mut block = File::open(path)?;
         std::io::copy(&mut block, &mut result)?;
     }
+
+    if !matches.is_present("keep-files") {
+        println!("Removing block files...");
+        std::fs::remove_dir_all(path)?;
+    }
+
+    println!("Finished!");
     Ok(())
 }
