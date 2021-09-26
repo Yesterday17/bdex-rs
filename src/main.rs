@@ -141,6 +141,7 @@ fn main() -> anyhow::Result<()> {
     let pool = ThreadPool::new(threads);
 
     let hash = matches.value_of("hash").unwrap();
+    let hash = hash.strip_prefix("bdex://").unwrap_or(hash);
     let meta = Metadata::download(hash, client.clone())?;
     println!("File: {}", meta.filename);
     println!("Size: {}", meta.size);
