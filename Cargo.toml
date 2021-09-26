@@ -1,6 +1,6 @@
 [package]
-name = "bdex-rs"
-version = "0.1.0"
+name = "bdex"
+version = "0.1.1"
 authors = ["Yesterday17 <mmf@mmf.moe>"]
 edition = "2018"
 

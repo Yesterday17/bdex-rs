@@ -150,6 +150,10 @@ fn main() -> anyhow::Result<()> {
 
     let path = matches.value_of("path").unwrap();
     let path = PathBuf::from(path).join(hash);
+    let result_filename = path.with_file_name(&meta.filename);
+    if result_filename.exists() {
+        anyhow::bail!("File {} exists, aborted.", meta.filename);
+    }
     if !path.exists() {
         std::fs::create_dir_all(&path)?;
     }
