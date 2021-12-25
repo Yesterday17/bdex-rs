@@ -179,7 +179,7 @@ fn main() -> anyhow::Result<()> {
                         std::fs::remove_file(&path).unwrap();
                         retry -= 1;
                         if retry != 0 {
-                            println!("[{}/{}] Download error: {:?}. Retrying...", i + 1, total, e);
+                            println!("[{}/{}] Download error: {:?}. Retrying... ({}/{})", i + 1, total, e, retry_times - retry, retry_times - 1);
                         } else {
                             *any_block_failed.lock().unwrap() = true;
                             println!("[{}/{}] Failed to download block {}: {:?}.", i + 1, total, block.sha1, e);
