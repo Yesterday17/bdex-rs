@@ -1,0 +1,72 @@
+name: Build
+on: [ push ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: bdex-x86_64-unknown-linux-gnu.tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            name: bdex-x86_64-unknown-linux-musl.tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: bdex-x86_64-pc-windows-msvc.zip
+          - target: x86_64-apple-darwin
+            os: macOS-latest
+            name: bdex-x86_64-apple-darwin.tar.gz
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2.4.0
+
+      - name: Setup | Dependencies
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt install musl-tools
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: Setup | Cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ matrix.target }}-bdex-cache
+
+      - name: Build | Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --locked --target ${{ matrix.target }}"
+
+      - name: PostBuild | Prepare artifacts [Windows]
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          strip bdex.exe
+          7z a ../../../${{ matrix.name }} bdex.exe
+          cd -
+
+      - name: PostBuild | Prepare artifacts [-nix]
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          strip bdex || true
+          tar czvf ../../../${{ matrix.name }} bdex
+          cd -
+
+      - name: Deploy | Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}
