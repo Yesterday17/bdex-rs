@@ -44,7 +44,7 @@ struct MetadataBlock {
 }
 
 impl MetadataBlock {
-    pub fn download<P: AsRef<Path>>(&self, file: P, client: Arc<reqwest::blocking::Client>, index: usize, total: usize, skip_hash: bool) -> anyhow::Result<()> {
+    pub fn download<P: AsRef<Path>>(&self, file: P, client: Arc<reqwest::blocking::Client>, index: usize, total: usize, skip_hash: bool, force: bool) -> anyhow::Result<()> {
         if file.as_ref().exists() {
             if skip_hash {
                 println!("[{}/{}] Skip {}...", index, total, self.sha1);
@@ -61,8 +61,13 @@ impl MetadataBlock {
             }
         }
         let mut file = File::create(file)?;
+        let url = if !force {
+            self.url.clone()
+        } else {
+            format!("{}@100q", self.url)
+        };
 
-        let resp = client.get(&self.url).send()?;
+        let resp = client.get(url).send()?;
         decode_png(resp, &mut file)?;
         println!("[{}/{}] Downloaded {}", index, total, self.sha1);
         Ok(())
@@ -117,7 +122,7 @@ fn main() -> anyhow::Result<()> {
             .short('R')
             .takes_value(true)
             .required(true)
-            .default_value("10")
+            .default_value("3")
         )
         .arg(Arg::new("keep-files")
             .long("keep-files")
@@ -182,7 +187,7 @@ fn main() -> anyhow::Result<()> {
                 if retry <= 0 {
                     break;
                 }
-                match block.download(&path, client.clone(), i + 1, total, skip_hash) {
+                match block.download(&path, client.clone(), i + 1, total, skip_hash, retry != retry_times /* force if retrying */) {
                     Err(e) => {
                         std::fs::remove_file(&path).unwrap();
                         retry -= 1;
