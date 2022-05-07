@@ -123,6 +123,10 @@ fn main() -> anyhow::Result<()> {
             .long("keep-files")
             .short('k')
         )
+        .arg(Arg::new("verbose")
+            .long("verbose")
+            .short('v')
+        )
         .arg(Arg::new("hash")
             .takes_value(true)
             .required(true)
@@ -139,6 +143,7 @@ fn main() -> anyhow::Result<()> {
     let client = Arc::new(reqwest::blocking::Client::new());
     let threads = usize::from_str(matches.value_of("threads").unwrap()).expect("invalid threads argument");
     let pool = ThreadPool::new(threads);
+    let verbose = matches.is_present("verbose");
 
     let hash = matches.value_of("hash").unwrap();
     let hash = hash.strip_prefix("bdex://").unwrap_or(hash);
@@ -147,6 +152,9 @@ fn main() -> anyhow::Result<()> {
     println!("Size: {}", meta.size);
     println!("Block count: {}", meta.block.len());
     println!("Hash: {}", meta.sha1);
+    if verbose {
+        println!("Blocks: {:#?}", meta.block.iter().enumerate().map(|(i, b)| (i, &b.url)).collect::<Vec<_>>());
+    }
 
     let path = matches.value_of("path").unwrap();
     let path = PathBuf::from(path).join(hash);
