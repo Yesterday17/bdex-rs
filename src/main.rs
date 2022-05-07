@@ -61,20 +61,16 @@ impl MetadataBlock {
             }
         }
         let mut file = File::create(file)?;
-        let url = if !force {
-            self.url.clone()
-        } else {
-            match retry % 8 {
-                0 => self.url.clone(),
-                7 => self.url.replace("http://", "https://"),
-                6 => self.url.replace("i0.hdslb.com", "i1.hdslb.com"),
-                5 => self.url.replace("http://i0.hdslb.com", "https://i1.hdslb.com"),
-                4 => self.url.replace("i0.hdslb.com", "i2.hdslb.com"),
-                3 => self.url.replace("http://i0.hdslb.com", "https://i2.hdslb.com"),
-                2 => self.url.replace("i0.hdslb.com", "i3.hdslb.com"),
-                1 => self.url.replace("http://i0.hdslb.com", "https://i3.hdslb.com"),
-                _ => unreachable!(),
-            }
+        let url = match retry % 8 {
+            0 => self.url.clone(),
+            7 => self.url.replace("http://", "https://"),
+            6 => self.url.replace("i0.hdslb.com", "i1.hdslb.com"),
+            5 => self.url.replace("http://i0.hdslb.com", "https://i1.hdslb.com"),
+            4 => self.url.replace("i0.hdslb.com", "i2.hdslb.com"),
+            3 => self.url.replace("http://i0.hdslb.com", "https://i2.hdslb.com"),
+            2 => self.url.replace("i0.hdslb.com", "i3.hdslb.com"),
+            1 => self.url.replace("http://i0.hdslb.com", "https://i3.hdslb.com"),
+            _ => unreachable!(),
         };
 
         let resp = client.get(url).send()?;
