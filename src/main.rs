@@ -64,7 +64,8 @@ impl MetadataBlock {
         let url = if !force {
             self.url.clone()
         } else {
-            format!("{}@100q", self.url)
+            self.url.replace("i0.hdslb.com", "i3.hdslb.com")
+            // format!("{}@100q", self.url)
         };
 
         let resp = client.get(url).send()?;
