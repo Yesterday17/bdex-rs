@@ -44,7 +44,7 @@ struct MetadataBlock {
 }
 
 impl MetadataBlock {
-    pub fn download<P: AsRef<Path>>(&self, file: P, client: Arc<reqwest::blocking::Client>, index: usize, total: usize, skip_hash: bool, force: bool) -> anyhow::Result<()> {
+    pub fn download<P: AsRef<Path>>(&self, file: P, client: Arc<reqwest::blocking::Client>, index: usize, total: usize, skip_hash: bool, retry: u32) -> anyhow::Result<()> {
         if file.as_ref().exists() {
             if skip_hash {
                 println!("[{}/{}] Skip {}...", index, total, self.sha1);
@@ -64,8 +64,17 @@ impl MetadataBlock {
         let url = if !force {
             self.url.clone()
         } else {
-            self.url.replace("i0.hdslb.com", "i3.hdslb.com")
-            // format!("{}@100q", self.url)
+            match retry % 8 {
+                0 => self.url.clone(),
+                7 => self.url.replace("http://", "https://"),
+                6 => self.url.replace("i0.hdslb.com", "i1.hdslb.com"),
+                5 => self.url.replace("http://i0.hdslb.com", "https://i1.hdslb.com"),
+                4 => self.url.replace("i0.hdslb.com", "i2.hdslb.com"),
+                3 => self.url.replace("http://i0.hdslb.com", "https://i2.hdslb.com"),
+                2 => self.url.replace("i0.hdslb.com", "i3.hdslb.com"),
+                1 => self.url.replace("http://i0.hdslb.com", "https://i3.hdslb.com"),
+                _ => unreachable!(),
+            }
         };
 
         let resp = client.get(url).send()?;
@@ -123,7 +132,7 @@ fn main() -> anyhow::Result<()> {
             .short('R')
             .takes_value(true)
             .required(true)
-            .default_value("3")
+            .default_value("8")
         )
         .arg(Arg::new("keep-files")
             .long("keep-files")
@@ -188,7 +197,7 @@ fn main() -> anyhow::Result<()> {
                 if retry <= 0 {
                     break;
                 }
-                match block.download(&path, client.clone(), i + 1, total, skip_hash, retry != retry_times /* force if retrying */) {
+                match block.download(&path, client.clone(), i + 1, total, skip_hash, if retry == retry_times { 0 } else { retry_times - retry }) {
                     Err(e) => {
                         std::fs::remove_file(&path).unwrap();
                         retry -= 1;
